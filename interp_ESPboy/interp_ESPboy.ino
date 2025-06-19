@@ -1,3 +1,13 @@
+/*
+ESPboy ABC interp port
+for www.ESPboy.com project by RomanS
+
+to changed APP - change following, then compile
+ 1. #include "compiled_h/APP.h" - lines 16-25
+ 2. APP_ID - line 37
+ 3. myESPboy.begin("App name"); - line 162
+*/
+
 #include "Arduino.h"
 #include <sigma_delta.h>
 #include <mmu_iram.h>
@@ -16,21 +26,29 @@
 
 #include "lib/ESPboyInit.h"
 #include "lib/ESPboyInit.cpp"
+//#include "lib/ESPboyTerminalGUI.h"
+//#include "lib/ESPboyTerminalGUI.cpp"
+//#include "lib/ESPboyOTA2.h"
+//#include "lib/ESPboyOTA2.cpp"
+
 #include "nbSPI.h"
 #include "abc_interp.h"
 
-#define APP_ID        0xDDDF
+#define APP_ID        0xFFFF
 #define WIDTH         128
 #define HEIGHT        64
 #define SAMPLING_RATE 22000
 #define SOUND_PIN     D3
-#define SOUND_LEN     SAMPLING_RATE/10
+#define SOUND_LEN     SAMPLING_RATE/20
 
-static int16_t          samples[SOUND_LEN+1];
+static uint16_t         *doblebuffer = NULL;
+static int16_t          *samples = NULL;
 static volatile uint8_t endofSample = 1;
 static volatile int16_t samplePointer = 0;
 
 ESPboyInit myESPboy;
+//ESPboyTerminalGUI *terminalGUIobj = NULL;
+//ESPboyOTA2 *OTA2obj = NULL;
 
 static abc_interp_t interp;
 static abc_host_t host;
@@ -66,7 +84,6 @@ static uint32_t __attribute__((always_inline)) host_rand_seed(void* user){
 
 
 void __attribute__((always_inline)) doDisplayCPP(){   
-    static uint16_t doblebuffer[128*128];
     ESP.wdtFeed();
     
     uint16_t addr1=0, addr2=WIDTH, addr3=0;
@@ -143,8 +160,23 @@ void setup() {
 
   /* Start ESPboy */
   myESPboy.begin("ABC script");
+  
   //Serial.println("\nStart");
+  
+  /* Check OTA2 */
+//  if (myESPboy.getKeys()&PAD_ACT || myESPboy.getKeys()&PAD_ESC) { 
+//     terminalGUIobj = new ESPboyTerminalGUI(&myESPboy.tft, &myESPboy.mcp);
+//     OTA2obj = new ESPboyOTA2(terminalGUIobj);
+//  }
 
+/* alloc mem */
+  //Serial.println((int32_t)doblebuffer);
+  //Serial.println((int32_t)samples);
+  doblebuffer = (uint16_t *) malloc (128*128*2);
+  samples = (int16_t *) malloc ((SOUND_LEN+1)*2);
+  //Serial.println((int32_t)doblebuffer);
+  //Serial.println((int32_t)samples);
+  
   /* Init sound */
   sigmaDeltaSetup(0, SAMPLING_RATE);
   sigmaDeltaAttachPin(SOUND_PIN);
