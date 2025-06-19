@@ -1,8 +1,8 @@
 #define _SILENCE_CXX17_STRSTREAM_DEPRECATION_WARNING
 
 #include <absim.hpp>
-#include <ards_assembler.hpp>
-#include <ards_compiler.hpp>
+#include <abc_assembler.hpp>
+#include <abc_compiler.hpp>
 
 #include <cassert>
 #include <cinttypes>
@@ -77,14 +77,12 @@ static uint64_t measure(bool abc = false)
 
 static std::vector<uint8_t> compile(std::string const& fname)
 {
-    std::string abc_asm;
-    ards::compiler_t c{};
-    std::ostringstream fo;
+    abc::compiler_t c{};
     std::filesystem::path p(fname);
-    auto path = p.parent_path().generic_string();
+    auto path = p.parent_path().lexically_normal().generic_string();
     auto name = p.stem().generic_string();
     c.suppress_githash();
-    c.compile(path, name, fo);
+    c.compile(path, name);
     for(auto const& e : c.errors())
     {
         printf("%s ERROR (line %d): %s\n",
@@ -94,15 +92,13 @@ static std::vector<uint8_t> compile(std::string const& fname)
     }
     if(!c.errors().empty())
         return {};
-    abc_asm = fo.str();
     {
         std::ofstream fasm(path + "/asm.txt");
-        fasm << abc_asm;
+        c.write(fasm);
     }
 
-    ards::assembler_t a{};
-    std::istrstream ss(abc_asm.data(), (int)abc_asm.size());
-    auto e = a.assemble(ss);
+    abc::assembler_t a{};
+    auto e = a.assemble(c);
     assert(e.msg.empty());
     e = a.link();
     assert(e.msg.empty());
@@ -222,6 +218,18 @@ int abc_benchmarks()
 #endif
 
 #if 1
+    if(compile(PLATFORMER_DIR "/../basic/main.abc"  ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../circle/main.abc" ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../font/main.abc"   ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../gray/main.abc"   ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../midi/main.abc"   ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../pong/main.abc"   ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../snake/main.abc"  ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../sprite/main.abc" ).empty()) return 1;
+    if(compile(PLATFORMER_DIR "/../tilemap/main.abc").empty()) return 1;
+#endif
+
+#if 1
     fout = fopen(PLATFORMER_DIR "/benchmark.txt", "w");
     if(!fout) return 1;
     {
@@ -248,7 +256,8 @@ int abc_benchmarks()
     fout = fopen(BENCHMARKS_DIR "/cycles_instruction.txt", "w");
     if(!fout) return 1;
     {
-        ards::assembler_t a{};
+        abc::assembler_t a{};
+        a.enable_relaxing = false;
         {
             std::ifstream fi(BENCHMARKS_DIR "/instructions.asm");
             auto e = a.assemble(fi);
@@ -287,14 +296,14 @@ int abc_benchmarks()
         "dup", "dup2", "dup3", "dup4", "dup5", "dup6", "dup7", "dup8",
         "dupw", "dupw2", "dupw3", "dupw4", "dupw5", "dupw6", "dupw7", "dupw8",
         "getl N", "getl2 N", "getl4 N",
-        "getln N (3)", "getln N (5)", "getln N (8)", "getln N (16)", "getln N (32)",
+        "getln 3", "getln 5", "getln 8", "getln 16", "getln 32",
         "setl N", "setl2 N", "setl4 N",
-        "setln N (3)", "setln N (5)", "setln N (8)", "setln N (16)", "setln N (32)",
-        "getg VAR", "getg2 VAR", "getg4 VAR",
-        "getgn VAR (3)", "getgn VAR (5)", "getgn VAR (8)", "getgn VAR (16)", "getgn VAR (32)",
-        "gtgb VAR", "gtgb2 VAR", "gtgb4 VAR",
-        "setg VAR", "setg2 VAR", "setg4 VAR",
-        "setgn VAR (3)", "setgn VAR (5)", "setgn VAR (8)", "setgn VAR (16)", "setgn VAR (32)",
+        "setln 3", "setln 5", "setln 8", "setln 16", "setln 32",
+        "getg", "getg2", "getg4",
+        "getgn 3", "getgn 5", "getgn 8", "getgn 16", "getgn 32",
+        "gtgb", "gtgb2", "gtgb4",
+        "setg", "setg2", "setg4",
+        "setgn 3", "setgn 5", "setgn 8", "setgn 16", "setgn 32",
         "getp",
         "getpn 2", "getpn 3", "getpn 4", "getpn 8", "getpn 16", "getpn 32",
         "pop", "pop2", "pop3", "pop4", "popn N",
@@ -360,14 +369,16 @@ int abc_benchmarks()
         "u2f (3)", "u2f (340000000)",
         "bz (not taken)", "bz (taken)",
         "bz1 (not taken)", "bz1 (taken)",
+        "bz2 (not taken)", "bz2 (taken)",
         "bnz (not taken)", "bnz (taken)",
         "bnz1 (not taken)", "bnz1 (taken)",
+        "bnz2 (not taken)", "bnz2 (taken)",
         "bzp (not taken)", "bzp (taken)",
         "bzp1 (not taken)", "bzp1 (taken)",
         "bnzp (not taken)", "bnzp (taken)",
         "bnzp1 (not taken)", "bnzp1 (taken)",
-        "jmp", "jmp1",
-        "call", "call1", "icall", "ret",
+        "jmp", "jmp1", "jmp2",
+        "call", "call1", "call2", "icall", "ret",
         "$get_pixel",
         "$draw_pixel",
         "$draw_hline (0, 0, 1)",

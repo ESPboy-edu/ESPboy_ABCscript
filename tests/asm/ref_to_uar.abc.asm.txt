@@ -21,8 +21,136 @@ main:
   .line 14
   refl  8
   p3
-  p0
-  call  sum
+  p0000
+  .line 4
+  dup
+$L_main_1:
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bz    $L_main_3
+  .line 5
+  dupw3
+  getl4 10
+  dupw7
+  uaidx 2
+  getr2
+  add2
+  setl2 4
+  .line 4
+  p1
+  add2b
+  dupw
+  dupw7
+  cult2
+  bnz   $L_main_1
+$L_main_3:
+  pop2
+  .line 6
+  dupw
+  setl2 8
+  popn  6
   .line 15
   dupw
   p6
@@ -34,39 +162,5 @@ main:
   sys   debug_break
   .line 9
   popn  8
-  ret
-
-sum:
-  .file ref_to_uar.abc
-  .line 3
-  p00
-  .line 4
-  p0000
-  dupw7
-  cult2
-  bz    $L_sum_0
-$L_sum_2:
-  .line 5
-  dupw3
-  getl4 10
-  dupw7
-  uaidx 2
-  getr2
-  add2
-  setl2 4
-  .line 4
-  dupw
-  p1
-  add2b
-  setl2 2
-  dupw
-  dupw7
-  cult2
-  bnz   $L_sum_2
-$L_sum_0:
-  pop2
-  .line 6
-  setl2 6
-  pop4
   ret
 

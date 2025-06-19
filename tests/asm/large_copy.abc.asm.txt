@@ -29,21 +29,16 @@ $globinit:
   .line 20
   p0
   p1
-  p0
-  push  44
-  p1
-  p0
+  push2 11264
+  dupw2
   pushg a 0
-  push  44
-  p1
+  push2 300
   sys   memcpy_P
   .line 21
   pushg a 0
-  push  44
-  p1
+  push2 300
   pushg b 0
-  push  44
-  p1
+  push2 300
   sys   memcpy
   ret
 
@@ -83,11 +78,9 @@ main:
   setg  a 299
   .line 34
   pushg a 0
-  push  44
-  p1
+  push2 300
   pushg b 0
-  push  44
-  p1
+  push2 300
   sys   memcpy
   .line 36
   getg  b 0
@@ -97,8 +90,7 @@ main:
   sys   assert
   .line 37
   getg  b 299
-  p0
-  push  200
+  push2 51200
   sub2b
   bool2
   not
@@ -106,13 +98,10 @@ main:
   .line 39
   p0
   p1
-  p0
-  push  44
-  p1
-  p0
+  push2 11264
+  dupw2
   pushg b 0
-  push  44
-  p1
+  push2 300
   sys   memcpy_P
   .line 41
   getg  b 0
@@ -139,22 +128,17 @@ main:
   p0
   setg  b 299
   .line 49
+  p0
+  p1
+  push2 11264
+  dupw2
   pushg b 0
-  p0
-  p1
-  p0
-  push  44
-  p1
-  p0
-  dupw7
-  push  44
-  p1
+  push2 300
   sys   memcpy_P
-  push  44
-  p1
+  pushg b 0
+  push2 300
   pushg a 0
-  push  44
-  p1
+  push2 300
   sys   memcpy
   .line 51
   getg  a 0
@@ -180,69 +164,72 @@ main:
   sub
   not
   sys   assert
+  .line 56
+  p0
+  pushg a 0
+  push2 300
+  sys   memset
   .line 57
-  p0000
-  pz16
-  pz16
-  pz16
-  pz16
-  pz16
-  pz16
+  getg  a 0
+  not
+  sys   assert
   .line 58
+  getg  a 299
+  not
+  sys   assert
+  .line 61
+  pz16
+  pz16
+  pz16
+  pz16
+  pz16
+  pz16
+  p0000
+  .line 62
   p1
   sys   assert
-  .line 59
+  .line 63
   p0
   p1
-  p0
-  push  100
+  push2 25600
   p00
   refl  106
-  push  100
-  p0
+  push2 100
   sys   memcpy_P
-  .line 60
+  .line 64
   getl  100
   p7
   sub
   not
   sys   assert
-  .line 61
-  push  200
-  p1
-  p0
-  push  100
+  .line 65
+  push4 1677722056
   p00
   refl  106
-  push  100
-  p0
+  push2 100
   sys   memcpy_P
-  .line 62
+  .line 66
   dup
   push  101
   sub
   not
   sys   assert
-  popn  255
-  .line 66
-  pop
+  .line 70
   p0
   p1
-  p0
-  push  100
+  push2 25600
   p00
   refl  106
-  push  100
-  p0
+  push2 100
   sys   memcpy_P
-  .line 67
+  .line 71
   getl  100
   p7
   sub
   not
   sys   assert
   popn  100
-  .line 70
+  .line 74
   sys   debug_break
   .line 23
   ret

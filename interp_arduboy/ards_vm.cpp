@@ -40,6 +40,7 @@ extern "C" void sys_ceil();
 extern "C" void sys_cos();
 extern "C" void sys_debug_break();
 extern "C" void sys_floor();
+extern "C" void sys_memset();
 extern "C" void sys_mod();
 extern "C" void sys_pow();
 extern "C" void sys_round();
@@ -90,21 +91,14 @@ static char const* const ERRC[NUM_ERR] PROGMEM =
 static void draw_pc_line(uint24_t pc, uint8_t y)
 {
     // find and display file/line info
-    uint8_t num_files = 0;
-    uint24_t file_table = 0;
-    uint24_t line_table = 0;
-    FX::seekData(12);
-    num_files = FX::readPendingUInt8();
-    file_table |= ((uint24_t)FX::readPendingUInt8()     << 0);
-    file_table |= ((uint24_t)FX::readPendingUInt8()     << 8);
-    file_table |= ((uint24_t)FX::readPendingUInt8()     << 16);
-    line_table |= ((uint24_t)FX::readPendingUInt8()     << 0);
-    line_table |= ((uint24_t)FX::readPendingUInt8()     << 8);
-    line_table |= ((uint24_t)FX::readPendingLastUInt8() << 16);
+    fx_seek_data(12);
+    uint8_t num_files = FX::readPendingUInt8();
+    uint24_t file_table = FX::readPendingUInt24();
+    uint24_t line_table = FX::readPendingLastUInt24();
     uint8_t file = 0;
     uint16_t line = 0;
     uint24_t tpc = 0;
-    FX::seekData(line_table);
+    fx_seek_data(line_table);
     /*
     Line Table Command Encoding
     =========================================================
@@ -132,7 +126,7 @@ static void draw_pc_line(uint24_t pc, uint8_t y)
     if(file < num_files)
     {
         char fname[32];
-        FX::readDataBytes(file_table + file * 32, (uint8_t*)fname, 32);
+        ards::detail::fx_read_data_bytes(file_table + file * 32, (uint8_t*)fname, 32);
         draw_text(24, y, fname, false);
         for(uint8_t i = 0; i < 5; ++i)
         {
@@ -152,7 +146,7 @@ struct LetMeUseBootOLED : public Arduboy2Base
     static void bootOLED() { Arduboy2Base::bootOLED(); }
 };
 
-extern "C" __attribute__((used)) void vm_error(error_t e)
+extern "C" [[gnu::used]] void vm_error(error_t e)
 {
     vm.error = (uint8_t)e;
     //Arduboy2Base::clear();
@@ -191,11 +185,10 @@ extern "C" __attribute__((used)) void vm_error(error_t e)
             draw_text(1, 1, ERROR, true);
             if(e != ERR_SIG)
             {
-                FX::seekData(0x20);
-                uint8_t x = 36;
-                for(uint8_t i = 0; i < 24; ++i)
-                    x += draw_char(x, 1, (char)FX::readPendingUInt8()) + 1;
-                (void)FX::readEnd();
+                char buf[25];
+                ards::detail::fx_read_data_bytes(0x20, buf, 24);
+                buf[24] = '\0';
+                draw_text(36, 1, buf, false);
             }
             for(uint8_t* ptr = &Arduboy2Base::sBuffer[0]; ptr < &Arduboy2Base::sBuffer[128]; )
                 *ptr++ ^= 0x7f;
@@ -396,7 +389,7 @@ sys_assert:
     cpse r0, __zero_reg__
     ret
     ldi  r24, 4
-    jmp  vm_error
+    call call_vm_error
 
 sys_debug_break:
     break
@@ -1109,28 +1102,41 @@ getln_error:
     dispatch
 
 I_GETLN:
-    mov  r16, r9
-    add  r9, r28
-    brcs getln_error
-1:  movw r26, r28
-    add  r6, r4
+    lpm
+    lpm
+    cli
+    out  %[spdr], r2
+    in   r16, %[spdr]
+    sei
+    ldi  r20, 3
+    add  r6, r20
     adc  r7, r2
     adc  r8, r2
-    in   r0, %[spdr]
+    movw r26, r28
+    inc  r26
+    rcall getg_delay_7
+    cli
     out  %[spdr], r2
-    sub  r26, r0
+    in   r17, %[spdr]
+    sei
+    sub  r26, r17
     lsr  r16
-    brcc 2f
-    ld   r0, X+
-    st   Y+, r0
-2:  ld   r0, X+
-    st   Y+, r0
+    brcc 1f
+    st   Y+, r9
+    ld   r9, X+
+1:  st   Y+, r9
     ld   r9, X+
     st   Y+, r9
+    ld   r9, X+
     dec  r16
-    brne 2b
-    dec  r28
-    dispatch
+    brne 1b
+
+    ; custom dispatch
+    in   r0, %[spdr]
+    out  %[spdr], r2
+    nop
+    rjmp getln_dispatch_part2
+    .align 6
 
 I_SETL:
     lpm
@@ -1188,32 +1194,48 @@ I_SETL4:
     st   X+, r19
     ld   r9, -Y
     nop
-setln_dispatch:
-    dispatch
- 
-I_SETLN:
-    mov  r16, r9
-    subi r16, 2
-    movw r26, r28
-    ld   r17, -Y
-    ld   r18, -Y
     read_byte
-    sub  r26, r0
-    st   -X, r17
-    st   -X, r18
+setln_dispatch_part2:
+getln_dispatch_part2:
+    mul  r0, r3
+    movw r30, r0
+    add  r31, r5
+    ijmp
+    .align 6
+
+I_SETLN:
+    lpm
+    lpm
+    cli
+    out  %[spdr], r2
+    in   r16, %[spdr]
+    sei
+    ldi  r20, 3
+    add  r6, r20
+    adc  r7, r2
+    adc  r8, r2
+    movw r26, r28
+    inc  r26
+    rcall getg_delay_9
+    in   r17, %[spdr]
+    out  %[spdr], r2
+    sub  r26, r17
     lsr  r16
     brcc 1f
-    ld   r0, -Y
-    st   -X, r0
-    breq 2f
-1:  ld   r0, -Y
-    st   -X, r0
-    ld   r0, -Y
-    st   -X, r0
+    st   -X, r9
+    ld   r9, -Y
+1:  st   -X, r9
+    ld   r9, -Y
+    st   -X, r9
+    ld   r9, -Y
     dec  r16
     brne 1b
-2:  ld   r9, -Y
-    rjmp setln_dispatch
+
+    ; custom dispatch
+    in   r0, %[spdr]
+    out  %[spdr], r2
+    nop
+    rjmp setln_dispatch_part2
     .align 6
 
 I_GETG:
@@ -1252,7 +1274,9 @@ getg_delay_12:
 getg_delay_11:
     nop
 getg_delay_10:
-    rjmp .+0
+    nop
+getg_delay_9:
+    nop
 getg_delay_8:
     nop
 getg_delay_7:
@@ -1312,32 +1336,38 @@ getgn_error:
     .align 6
 
 I_GETGN:
-    mov  r18, r9
-    dec r9
-    add  r9, r28
-    brcs getgn_error
+    ; X   - global pointer
+    ; r16 - counter
     lpm
-    in   r26, %[spdr]
+    lpm
+    cli
     out  %[spdr], r2
-    ldi  r20, 2
-    add  r6, r20
+    in   r16, %[spdr]
+    sei
+    ldi  r17, 3
+    add  r6, r17
     adc  r7, r2
     adc  r8, r2
-    rcall getg_delay_12
+    rcall getg_delay_9
+    cli
+    out  %[spdr], r2
+    in   r26, %[spdr]
+    sei
+    rcall getg_delay_14
     in   r27, %[spdr]
     out  %[spdr], r2
-    lsr  r18
+    lsr  r16
     brcc 1f
-    ld   r0, X+
-    st   Y+, r0
-1:  ld   r0, X+
-    st   Y+, r0
-    ld   r0, X+
-    st   Y+, r0
-    dec  r18
+    st   Y+, r9
+    ld   r9, X+
+1:  st   Y+, r9
+    ld   r9, X+
+    st   Y+, r9
+    ld   r9, X+
+    dec  r16
     brne 1b
-    ld   r9, -Y
-    rjmp getg4_dispatch
+    nop
+    rjmp getgn_dispatch
     .align 6
 
 I_GTGB:
@@ -1478,33 +1508,38 @@ I_SETG4:
     dispatch_reverse
 
 I_SETGN:
+    ; X   - global pointer
+    ; r16 - counter
     lpm
-    rjmp .+0
-    in   r10, %[sreg]
+    lpm
     cli
     out  %[spdr], r2
-    in   r26, %[spdr]
-    out  %[sreg], r10
-    ldi  r17, 2
+    in   r16, %[spdr]
+    sei
+    ldi  r17, 3
     add  r6, r17
     adc  r7, r2
     adc  r8, r2
-    rcall getg_delay_10
-    in   r27, %[spdr]
+    rcall getg_delay_9
+    cli
     out  %[spdr], r2
-    add  r26, r9
+    in   r26, %[spdr]
+    rcall getg_delay_15
+    out  %[spdr], r2
+    in   r27, %[spdr]
+    sei
+    add  r26, r16
     adc  r27, r2
-    lsr  r9
+    lsr  r16
     brcc 1f
-    ld   r0, -Y
-    st   -X, r0
-1:  ld   r0, -Y
-    st   -X, r0
-    ld   r0, -Y
-    st   -X, r0
-    dec  r9
-    brne 1b
+    st   -X, r9
     ld   r9, -Y
+1:  st   -X, r9
+    ld   r9, -Y
+    st   -X, r9
+    ld   r9, -Y
+    dec  r16
+    brne 1b
     rjmp setgn_dispatch
     .align 6
 
@@ -1580,6 +1615,7 @@ I_GETR:
     ld   r9, X+
     rjmp .+0
 setgn_dispatch:
+getgn_dispatch:
     dispatch_noalign
 getpn_seek_to_addr:
     fx_disable
@@ -1744,10 +1780,32 @@ I_POPN:
     add  r6, r4
     adc  r7, r2
     adc  r8, r2
-    sub  r28, r0
+    cp   r28, r0
+    brsh 1f
+    ldi  r24, 5
+    call call_vm_error
+1:  sub  r28, r0
     ld   r9, Y
-    lpm
     rjmp .+0
+    dispatch_reverse
+
+I_ALLOC:
+    lpm
+    st   Y, r9
+    in   r10, %[sreg]
+    cli
+    out  %[spdr], r2
+    in   r0, %[spdr]
+    out  %[sreg], r10
+    add  r6, r4
+    adc  r7, r2
+    adc  r8, r2
+    add  r28, r0
+    brcc 1f
+    ldi  r24, 5
+    call call_vm_error
+1:  ld   r9, Y
+    lpm
     dispatch_reverse
 
 I_AIXB1:
@@ -1944,20 +2002,19 @@ I_PIDX:
 I_UAIDX:
     ld   r20, -Y
     ld   r19, -Y
-    ld   r18, -Y
+    ldi  r17, 2
+    add  r6, r17
     cli
     out  %[spdr], r2
     in   r16, %[spdr]
     sei
-    mov  r21, r9
-    ldi  r17, 2
-    add  r6, r17
     adc  r7, r2
     adc  r8, r2
+    ld   r18, -Y
     cp   r20, r18
-    cpc  r21, r19
+    cpc  r9, r19
     brsh pidxb_error
-    ; A1 A0 : r21 r20
+    ; A1 A0 : r9  r20
     ; B1 B0 : r17 r16
     ; C1 C0 : r23 r22
     ;
@@ -1970,21 +2027,20 @@ I_UAIDX:
     ; ========
     ;    C1 C0
     ;
-1:  mul  r16, r20
+    mul  r16, r20
+    movw r22, r0
     ld   r25, -Y
     ld   r24, -Y
-    out  %[spdr], r2
     in   r17, %[spdr]
-    movw r22, r0
+    out  %[spdr], r2
     add  r22, r24
     adc  r23, r25
-    mul  r16, r21
+    mul  r16, r9
     add  r23, r0
     mul  r17, r20
     add  r23, r0
     st   Y+, r22
     mov  r9, r23
-    nop
     rjmp uaidx_dispatch
     .align 6
 
@@ -2196,13 +2252,45 @@ I_INC:
     lpm
 dec_dispatch:
 refgb_dispatch:
-    dispatch_reverse
+uaidx_dispatch:
+    dispatch_noalign_reverse
+    ; TODO: space here
+    .align 6
 
 I_DEC:
     dec r9
     nop
     rjmp dec_dispatch
-    ; TODO: SPACE HERE
+
+sys_memset:
+    lds  r30, %[vm_sp]
+    ldi  r31, 0x01
+    ld   r25, -Z
+    ld   r24, -Z
+    ld   r27, -Z
+    ld   r26, -Z
+    ld   r22, -Z
+    sts  %[vm_sp], r30
+    adiw r24, 0
+    breq 4f
+    lsr  r25
+    ror  r24
+    brcc 1f
+    st   X+, r22
+1:  lsr  r25
+    ror  r24
+    brcc 3f
+    st   X+, r22
+    st   X+, r22
+    rjmp 3f
+2:  st   X+, r22
+    st   X+, r22
+    st   X+, r22
+    st   X+, r22
+3:  sbiw r24, 1
+    brcc 2b
+4:  ret
+
     .align 6
 
 I_LINC:
@@ -2234,7 +2322,6 @@ I_PINC:
 slc_dispatch:
 pidxb_dispatch:
 refl_dispatch:
-uaidx_dispatch:
     dispatch
     ; TODO: SPACE HERE
 
@@ -2250,6 +2337,7 @@ I_PINC2:
     st   -X, r17
     st   -X, r16
     dispatch
+    ; TODO: space here
 
 I_PINC3:
     cpi  r28, 254
@@ -2433,6 +2521,7 @@ I_ADD:
     add  r9, r14
     nop
     dispatch_noalign_reverse
+    ; TODO: space here
 
 sys_pow:
     ld   r25, -Y
@@ -2462,6 +2551,7 @@ I_ADD2:
     adc  r9, r15
     st   Y+, r10
     dispatch
+    ; TODO: space here
 
 I_ADD3:
     ld   r11, -Y
@@ -2475,6 +2565,7 @@ I_ADD3:
     st   Y+, r10
     st   Y+, r11
     dispatch
+    ; TODO: space here
 
 I_ADD4:
     ld   r12, -Y
@@ -2509,6 +2600,7 @@ I_SUB2:
     st   Y+, r14
     mov  r9, r15
     dispatch
+    ; TODO: space here
 
 I_SUB3:
     ld   r11, -Y
@@ -2523,6 +2615,7 @@ I_SUB3:
     st   Y+, r15
     mov  r9, r16
     dispatch
+    ; TODO: space here
 
 I_SUB4:
     ld   r12, -Y
@@ -2550,6 +2643,7 @@ I_ADD2B:
     st   Y+, r14
     mov  r9, r15
     dispatch
+    ; TODO: space here
 
 I_ADD3B:
     ld   r16, -Y
@@ -2562,6 +2656,7 @@ I_ADD3B:
     st   Y+, r15
     mov  r9, r16
     dispatch
+    ; TODO: space here
 
 I_SUB2B:
     ld   r15, -Y
@@ -2571,6 +2666,7 @@ I_SUB2B:
     st   Y+, r14
     mov  r9, r15
     dispatch
+    ; TODO: space here
 
 I_MUL2B:
     ;
@@ -2590,6 +2686,14 @@ I_MUL2B:
     add  r19, r0
     st   Y+, r18
     mov  r9, r19
+    dispatch_noalign
+mul4_part2:
+    mul  r14, r9 ; A0*B3
+    add  r21, r0
+    st   Y+, r18
+    st   Y+, r19
+    st   Y+, r20
+    mov  r9, r21
     dispatch
 
 I_MUL:
@@ -2662,8 +2766,55 @@ I_MUL3:
     dispatch
 
 I_MUL4:
-    jmp  instr_mul4
-    ; TODO: SPACE HERE
+    ;   
+    ;    A3 A2 A1 A0
+    ;    B3 B2 B1 B0
+    ;    ===========
+    ;          A0*B0
+    ;       A1*B0
+    ;       A0*B1
+    ;    A2*B0
+    ;    A1*B1
+    ;    A0*B2
+    ; A3*B0
+    ; A2*B1
+    ; A1*B2
+    ; A0*B3
+    ;    ===========
+    ;    C3 C2 C1 C0
+    ;   
+    ld   r12, -Y
+    ld   r11, -Y
+    ld   r10, -Y
+    ld   r17, -Y
+    ld   r16, -Y
+    ld   r15, -Y
+    ld   r14, -Y
+    mul  r14, r10 ; A0*B0
+    movw r18, r0
+    mul  r16, r10 ; A2*B0
+    movw r20, r0
+    mul  r15, r10 ; A1*B0
+    add  r19, r0
+    adc  r20, r1
+    adc  r21, r2
+    mul  r14, r11 ; A0*B1
+    add  r19, r0
+    adc  r20, r1
+    adc  r21, r2
+    mul  r15, r11 ; A1*B1
+    add  r20, r0
+    adc  r21, r1
+    mul  r14, r12 ; A0*B2
+    add  r20, r0
+    adc  r21, r1
+    mul  r17, r10 ; A3*B0
+    add  r21, r0
+    mul  r16, r11 ; A2*B1
+    add  r21, r0
+    mul  r15, r12 ; A1*B2
+    add  r21, r0
+    rjmp mul4_part2
     .align 6
 
 I_UDIV2:
@@ -2673,17 +2824,18 @@ I_UDIV2:
     ld   r24, -Y
     cp   r22, r2
     cpc  r23, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
+    breq 1f
     ; dividend / remainder: r24:r25
     ; divisor  / quotient:  r22:r23
     ; clobbers:             r21, r26:r27
-1:  call __udivmodhi4
+    call __udivmodhi4
     st   Y+, r22
     mov  r9, r23
 udiv4_dispatch:
-    dispatch
+    dispatch_noalign
+1:  ldi  r24, 3
+    call call_vm_error
+    .align 6
 
 I_UDIV4:
     mov   r21, r9
@@ -2698,10 +2850,8 @@ I_UDIV4:
     cpc  r19, r2
     cpc  r20, r2
     cpc  r21, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
-1:  movw r16, r28
+    breq 1f
+    movw r16, r28
     ; dividend / remainder: r22:r25
     ; divisor  / quotient:  r18:r21
     ; clobbers:             r21, r26:r31
@@ -2712,6 +2862,8 @@ I_UDIV4:
     st   Y+, r20
     mov  r9, r21
     rjmp udiv4_dispatch
+1:  ldi  r24, 3
+    call call_vm_error
     .align 6
 
 I_DIV2:
@@ -2721,17 +2873,18 @@ I_DIV2:
     ld   r24, -Y
     cp   r22, r2
     cpc  r23, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
+    breq 1f
     ; dividend / remainder: r24:r25
     ; divisor  / quotient:  r22:r23
     ; clobbers:             r21, r26:r27
-1:  call __divmodhi4
+    call __divmodhi4
     st   Y+, r22
     mov  r9, r23
 div4_dispatch:
-    dispatch
+    dispatch_noalign
+1:  ldi  r24, 3
+    call call_vm_error
+    .align 6
 
 I_DIV4:
     mov  r21, r9
@@ -2746,10 +2899,8 @@ I_DIV4:
     cpc  r19, r2
     cpc  r20, r2
     cpc  r21, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
-1:  movw r16, r28
+    breq 1f
+    movw r16, r28
     ; dividend / remainder: r22:r25
     ; divisor  / quotient:  r18:r21
     ; clobbers:             r21, r26:r31
@@ -2760,6 +2911,8 @@ I_DIV4:
     st   Y+, r20
     mov  r9, r21
     rjmp div4_dispatch
+1:  ldi  r24, 3
+    call call_vm_error
     .align 6
 
 I_UMOD2:
@@ -2769,17 +2922,18 @@ I_UMOD2:
     ld   r24, -Y
     cp   r22, r2
     cpc  r23, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
+    breq 1f
     ; dividend / remainder: r24:r25
     ; divisor  / quotient:  r22:r23
     ; clobbers:             r21, r26:r27
-1:  call __udivmodhi4
+    call __udivmodhi4
     st   Y+, r24
     mov  r9, r25
 umod4_dispatch:
-    dispatch
+    dispatch_noalign
+1:  ldi  r24, 3
+    call call_vm_error
+    .align 6
 
 I_UMOD4:
     mov  r21, r9
@@ -2794,10 +2948,8 @@ I_UMOD4:
     cpc  r19, r2
     cpc  r20, r2
     cpc  r21, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
-1:  movw r16, r28
+    breq 1f
+    movw r16, r28
     ; dividend / remainder: r22:r25
     ; divisor  / quotient:  r18:r21
     ; clobbers:             r21, r26:r31
@@ -2808,6 +2960,8 @@ I_UMOD4:
     st   Y+, r24
     mov  r9, r25
     rjmp umod4_dispatch
+1:  ldi  r24, 3
+    call call_vm_error
     .align 6
 
 I_MOD2:
@@ -2817,17 +2971,18 @@ I_MOD2:
     ld   r24, -Y
     cp   r22, r2
     cpc  r23, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
+    breq 1f
     ; dividend / remainder: r24:r25
     ; divisor  / quotient:  r22:r23
     ; clobbers:             r21, r26:r27
-1:  call __divmodhi4
+    call __divmodhi4
     st   Y+, r24
     mov  r9, r25
 mod4_dispatch:
-    dispatch
+    dispatch_noalign
+    ldi  r24, 3
+    call call_vm_error
+    .align 6
 
 I_MOD4:
     mov  r21, r9
@@ -2842,10 +2997,8 @@ I_MOD4:
     cpc  r19, r2
     cpc  r20, r2
     cpc  r21, r2
-    brne 1f
-    ldi  r24, 3
-    call call_vm_error
-1:  movw r16, r28
+    breq 1f
+    movw r16, r28
     ; dividend / remainder: r22:r25
     ; divisor  / quotient:  r18:r21
     ; clobbers:             r21, r26:r31
@@ -2856,6 +3009,8 @@ I_MOD4:
     st   Y+, r24
     mov  r9, r25
     rjmp mod4_dispatch
+1:  ldi  r24, 3
+    call call_vm_error
     .align 6
 
 I_LSL:
@@ -3550,7 +3705,9 @@ branch_delay_13:
 branch_delay_12:
     nop
 branch_delay_11:
-    rjmp .+0
+    nop
+branch_delay_10:
+    nop
 branch_delay_9:
     rjmp .+0
 branch_delay_7:
@@ -3592,20 +3749,53 @@ I_BZ1:
     cp   r9, r2
     brne 1f
     ldi  r18, 3
-    mov  r16, r9
+    ldi  r19, 0xff
     in   r0, %[spdr]
     fx_disable
     fx_enable
     out  %[spdr], r18
     ld   r9, -Y
-    mov  r1, r0
-    lsl  r1
-    sbc  r1, r1
+    sbrs r0, 7
+    ldi  r19, 0x00
     add  r6, r0
-    adc  r7, r1
-    adc  r8, r1
+    adc  r7, r19
+    adc  r8, r19
     rjmp jump_to_pc_delayed2
-1:  ld   r9, -Y
+1:  nop
+    out  %[spdr], r2
+    ld   r9, -Y
+    rcall branch_delay_9
+    rjmp bz1_dispatch
+    .align 6
+
+I_BZ2:
+    ldi  r16, 2
+    add  r6, r16
+    adc  r7, r2
+    adc  r8, r2
+    cp   r9, r2
+    brne 1f
+    cli
+    out  %[spdr], r2
+    in   r16, %[spdr]
+    sei
+    ldi  r18, 3
+    ld   r9, -Y
+    ldi  r19, 0xff
+    rcall branch_delay_10
+    in   r17, %[spdr]
+    fx_disable
+    fx_enable
+    out  %[spdr], r18
+    sbrs r17, 7
+    ldi  r19, 0x00
+    add  r6, r16
+    adc  r7, r17
+    adc  r8, r19
+    rjmp jump_to_pc_delayed2
+1:  out  %[spdr], r2
+    ld   r9, -Y
+    rcall branch_delay_14
     out  %[spdr], r2
     rcall branch_delay_11
     rjmp bz1_dispatch
@@ -3646,20 +3836,53 @@ I_BNZ1:
     cp   r9, r2
     breq 1f
     ldi  r18, 3
-    mov  r16, r9
+    ldi  r19, 0xff
     in   r0, %[spdr]
     fx_disable
     fx_enable
     out  %[spdr], r18
     ld   r9, -Y
-    mov  r1, r0
-    lsl  r1
-    sbc  r1, r1
+    sbrs r0, 7
+    ldi  r19, 0x00
     add  r6, r0
-    adc  r7, r1
-    adc  r8, r1
+    adc  r7, r19
+    adc  r8, r19
     rjmp jump_to_pc_delayed2
-1:  ld   r9, -Y
+1:  nop
+    out  %[spdr], r2
+    ld   r9, -Y
+    rcall branch_delay_9
+    rjmp bz1_dispatch
+    .align 6
+
+I_BNZ2:
+    ldi  r16, 2
+    add  r6, r16
+    adc  r7, r2
+    adc  r8, r2
+    cp   r9, r2
+    breq 1f
+    cli
+    out  %[spdr], r2
+    in   r16, %[spdr]
+    sei
+    ldi  r18, 3
+    ld   r9, -Y
+    ldi  r19, 0xff
+    rcall branch_delay_10
+    in   r17, %[spdr]
+    fx_disable
+    fx_enable
+    out  %[spdr], r18
+    sbrs r17, 7
+    ldi  r19, 0x00
+    add  r6, r16
+    adc  r7, r17
+    adc  r8, r19
+    rjmp jump_to_pc_delayed2
+1:  out  %[spdr], r2
+    ld   r9, -Y
+    rcall branch_delay_14
     out  %[spdr], r2
     rcall branch_delay_11
     rjmp bz1_dispatch
@@ -3700,17 +3923,16 @@ I_BZP1:
     ldi  r18, 3
     cp   r9, r2
     brne 1f
-    nop
+    ldi  r19, 0xff
     in   r0, %[spdr]
     fx_disable
     fx_enable
     out  %[spdr], r18
-    mov  r1, r0
-    lsl  r1
-    sbc  r1, r1
+    sbrs r0, 7
+    ldi  r19, 0x00
     add  r6, r0
-    adc  r7, r1
-    adc  r8, r1
+    adc  r7, r19
+    adc  r8, r19
     rjmp jump_to_pc_delayed2
 1:  out  %[spdr], r2
     ld   r9, -Y
@@ -3753,17 +3975,16 @@ I_BNZP1:
     ldi  r18, 3
     cp   r9, r2
     breq 1f
-    nop
+    ldi  r19, 0xff
     in   r0, %[spdr]
     fx_disable
     fx_enable
     out  %[spdr], r18
-    mov  r1, r0
-    lsl  r1
-    sbc  r1, r1
+    sbrs r0, 7
+    ldi  r19, 0x00
     add  r6, r0
-    adc  r7, r1
-    adc  r8, r1
+    adc  r7, r19
+    adc  r8, r19
     rjmp jump_to_pc_delayed2
 1:  out  %[spdr], r2
     ld   r9, -Y
@@ -3792,20 +4013,45 @@ I_JMP:
     .align 6
 
 I_JMP1:
-    lpm
-    lpm
+    add  r6, r4
+    adc  r7, r2
+    adc  r8, r2
+    rjmp .+0
+    ldi  r19, 0xff
     ldi  r18, 3
     in   r0, %[spdr]
     fx_disable
     fx_enable
     out  %[spdr], r18
-    inc  r0
-    mov  r1, r0
-    lsl  r1
-    sbc  r1, r1
+    sbrs r0, 7
+    ldi  r19, 0x00
     add  r6, r0
-    adc  r7, r1
-    adc  r8, r1
+    adc  r7, r19
+    adc  r8, r19
+    rjmp jump_to_pc_delayed2
+    .align 6
+
+I_JMP2:
+    ldi  r18, 2
+    add  r6, r18
+    adc  r7, r2
+    adc  r8, r2
+    ldi  r19, 0xff
+    ldi  r18, 3
+    cli
+    out  %[spdr], r2
+    in   r24, %[spdr]
+    sei
+    rcall branch_delay_14
+    in   r25, %[spdr]
+    fx_disable
+    fx_enable
+    out  %[spdr], r18
+    sbrs r25, 7
+    ldi  r19, 0x00
+    add  r6, r24
+    adc  r7, r25
+    adc  r8, r19
     rjmp jump_to_pc_delayed2
 call_error:
     ldi  r24, 6
@@ -3833,6 +4079,7 @@ I_CALL:
     cli
     out  %[spdr], r2
     in   r0, %[spdr]
+    out  %[sreg], r10
     ldi  r16, 3
     add  r16, r6
     mov  r6, r0
@@ -3842,7 +4089,7 @@ I_CALL:
     st   X+, r7
     st   X+, r8
     rjmp .+0
-    rjmp .+0
+    cli
     out  %[spdr], r2
     in   r7, %[spdr]
     out  %[sreg], r10
@@ -3881,9 +4128,43 @@ I_CALL1:
     adc  r8, r1
     rjmp jump_to_pc_delayed2
 call1_error:
+call2_error:
 icall_error:
     ldi  r24, 6
     call call_vm_error
+    .align 6
+
+I_CALL2:
+    lds  r26, %[vm_csp]
+    cpi  r26, %[MAX_CALLS] * 3 - 3
+    brsh call2_error
+    ldi  r27, 0x06
+    nop
+    cli
+    out  %[spdr], r2
+    in   r16, %[spdr]
+    sei
+    ldi  r18, 2
+    add  r6, r18
+    adc  r7, r2
+    adc  r8, r2
+    st   X+, r6
+    st   X+, r7
+    st   X+, r8
+    sts  %[vm_csp], r26
+    ldi  r18, 3
+    nop
+    in   r17, %[spdr]
+    fx_disable
+    fx_enable
+    out  %[spdr], r18
+    mov  r1, r17
+    lsl  r1
+    sbc  r1, r1
+    add  r6, r16
+    adc  r7, r17
+    adc  r8, r1
+    rjmp jump_to_pc_delayed2
     .align 6
 
 I_ICALL:
@@ -3990,64 +4271,6 @@ I_SYS:
 ; helper methods
 ;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-instr_mul4:
-    ;   
-    ;    A3 A2 A1 A0
-    ;    B3 B2 B1 B0
-    ;    ===========
-    ;          A0*B0
-    ;       A1*B0
-    ;       A0*B1
-    ;    A2*B0
-    ;    A1*B1
-    ;    A0*B2
-    ; A3*B0
-    ; A2*B1
-    ; A1*B2
-    ; A0*B3
-    ;    ===========
-    ;    C3 C2 C1 C0
-    ;   
-    ld   r12, -Y
-    ld   r11, -Y
-    ld   r10, -Y
-    ld   r17, -Y
-    ld   r16, -Y
-    ld   r15, -Y
-    ld   r14, -Y
-    mul  r14, r10 ; A0*B0
-    movw r18, r0
-    mul  r16, r10 ; A2*B0
-    movw r20, r0
-    mul  r15, r10 ; A1*B0
-    add  r19, r0
-    adc  r20, r1
-    adc  r21, r2
-    mul  r14, r11 ; A0*B1
-    add  r19, r0
-    adc  r20, r1
-    adc  r21, r2
-    mul  r15, r11 ; A1*B1
-    add  r20, r0
-    adc  r21, r1
-    mul  r14, r12 ; A0*B2
-    add  r20, r0
-    adc  r21, r1
-    mul  r17, r10 ; A3*B0
-    add  r21, r0
-    mul  r16, r11 ; A2*B1
-    add  r21, r0
-    mul  r15, r12 ; A1*B2
-    add  r21, r0
-    mul  r14, r9 ; A0*B3
-    add  r21, r0
-    st   Y+, r18
-    st   Y+, r19
-    st   Y+, r20
-    mov  r9, r21
-seek_dispatch:
-    dispatch_noalign
-
 pidx_part2:
     
     ; compute prog ref + index * elem_size
@@ -4086,6 +4309,7 @@ pidx_part2:
     st   Y+, r13
     st   Y+, r14
     mov  r9, r15
+seek_dispatch:
     dispatch_noalign
 
 upidx_delay_12:
@@ -4286,7 +4510,6 @@ sys_atan2:
     sts  %[vm_sp], r28
     ret
 
-
 )"
 
     :
@@ -4330,7 +4553,7 @@ void vm_run()
     
     // read signature and refuse to run if it's not present
     {
-        FX::seekData(0);
+        fx_seek_data(0);
         uint32_t sig = FX::readPendingLastUInt32();
         if(sig != 0xABC00ABC)
             vm_error(ERR_SIG);
@@ -4344,7 +4567,7 @@ void vm_run()
     shades_init();
 #endif
     
-    FX::seekData(20);
+    fx_seek_data(20);
 
     // kick off execution
     asm volatile(R"(

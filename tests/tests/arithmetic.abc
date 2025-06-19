@@ -11,6 +11,8 @@ void test_u8()
     $assert(a % b == 3);
     $assert(a << 1 == 90);
     $assert(a >> 1 == 22);
+    $assert(a / 1 == 45);
+    $assert(b / 1 == 7);
     
     $assert(a == 45);
     $assert(--a == 44);
@@ -125,6 +127,9 @@ void test_u24()
     $assert(a % b == 30000);
     $assert(a << 1 == 900000);
     $assert(a >> 1 == 225000);
+    $assert(a % 256 == 208);
+    $assert(a / 2 == 225000);
+    $assert(a / 3 == 150000);
     $assert(u8(a >> 11) == u8(219));
     
     $assert(a == 450000);

@@ -26,26 +26,26 @@ void setup()
     {
         // look for dev end signature
         uint24_t addr = uint24_t(16) * 1024 * 1024 - 4;
-        FX::seekData(addr);
+        fx_seek_data(addr);
         uint32_t sig = FX::readPendingLastUInt32();
         if(sig != 0xABCEEABC)
         {
             // we might have a save page: look back one 4K sector
             addr -= 4096;
-            FX::seekData(addr);
+            fx_seek_data(addr);
             sig = FX::readPendingLastUInt32();
             if(sig != 0xABCEEABC)
                 vm_error(ards::ERR_SIG);
         }
         // read the data page from end-of-data
-        FX::readDataBytes(
+        ards::detail::fx_read_data_bytes(
             addr - 2,
             (uint8_t*)&FX::programDataPage,
             2);
     }
 
     // verify start signature
-    FX::seekData(0);
+    fx_seek_data(0);
     if(FX::readPendingLastUInt32() != 0xABC00ABC)
         vm_error(ards::ERR_SIG);
     

@@ -2,7 +2,7 @@
 
 #include <stdint.h>
 
-namespace ards
+namespace abc
 {
 
 enum sysfunc_t : uint8_t
@@ -41,6 +41,7 @@ enum sysfunc_t : uint8_t
     SYS_ANY_PRESSED,
     SYS_NOT_PRESSED,
     SYS_MILLIS,
+    SYS_MEMSET,
     SYS_MEMCPY,
     SYS_MEMCPY_P,
     SYS_STRLEN,
@@ -153,16 +154,16 @@ enum instr_t : uint8_t
     I_GETL,  // push stack[top - imm] (imm=1 is TOS)
     I_GETL2,
     I_GETL4,
-    I_GETLN, // pop N then same as GETL but push N bytes
+    I_GETLN, // push stack[top - imm2] (imm bytes)
     I_SETL,  // pop, then store to stack[top - imm]
     I_SETL2, // pop, then store to stack[top - imm] (2 bytes)
     I_SETL4, // pop, then store to stack[top - imm] (4 bytes)
-    I_SETLN, // pop N then same as SETL but pop/store N bytes
+    I_SETLN, // pop, then store to stack[top - imm2] (imm bytes)
 
     I_GETG,  // push globals[imm]
-    I_GETG2, // push globals[imm]
-    I_GETG4, // push globals[imm]
-    I_GETGN, // pop N then same as GETG but push N bytes
+    I_GETG2, // push globals[imm] (2 bytes)
+    I_GETG4, // push globals[imm] (4 bytes)
+    I_GETGN, // push globals[imm2] (imm bytes)
 
     // like GETG* but with imm8 (only first 256 bytes addressable)
     I_GTGB,
@@ -172,7 +173,7 @@ enum instr_t : uint8_t
     I_SETG,  // pop, then store to globals[imm]
     I_SETG2, // pop, then store to globals[imm] (2 bytes)
     I_SETG4, // pop, then store to globals[imm] (4 bytes)
-    I_SETGN, // pop N then same as SETG but pop/store N bytes
+    I_SETGN, // pop, then store to globals[imm2] (imm bytes)
 
     I_GETP,  // pop addr24 then push 1 byte from prog address
     I_GETPN, // pop addr24 then push imm8 bytes from prog address
@@ -189,6 +190,7 @@ enum instr_t : uint8_t
     I_POP3,  // a b c |
     I_POP4,  // a b c d |
     I_POPN,  // pop imm8 bytes
+    I_ALLOC, // push imm8 bytes of undefined data
 
     // array reference (RAM)
     I_AIXB1, // ref i | (ref+i*1) with bounds checking with imm (8-bit)
@@ -313,10 +315,10 @@ enum instr_t : uint8_t
 
     I_BZ,     // pop, branch if zero to imm3
     I_BZ1,    // imm8 rel offset
-    //I_BZ2,  // imm16 rel offset
+    I_BZ2,    // imm16 rel offset
     I_BNZ,    // pop, branch if nonzero to imm3
     I_BNZ1,   // imm8 rel offset
-    //I_BNZ2, // imm16 rel offset
+    I_BNZ2,   // imm16 rel offset
     I_BZP,    // 
     I_BZP1,   // 
     //I_BZP2, // (same as dup; b[n]z; pop)
@@ -325,15 +327,17 @@ enum instr_t : uint8_t
     //I_BNZP2,// 
     I_JMP,    // jmp imm3
     I_JMP1,   // imm8 rel offset
-    //I_JMP2, // imm16 rel offset
+    I_JMP2,   // imm16 rel offset
     I_IJMP,
     I_CALL,
     I_CALL1,  // imm8 rel offset
-    //I_CALL2,// imm16 rel offset
+    I_CALL2,  // imm16 rel offset
     I_ICALL,
     I_RET,
 
     I_SYS,   // call sysfunc (imm8)
+
+    NUM_INSTRS,
 
     //
     // pseudo-instructions just for compiler optimizations

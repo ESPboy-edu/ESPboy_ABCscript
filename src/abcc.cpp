@@ -1,4 +1,4 @@
-#include <ards_compiler.hpp>
+#include <abc_compiler.hpp>
 
 #include <iostream>
 #include <fstream>
@@ -123,10 +123,11 @@ int main(int argc, char** argv)
 #endif
 
 #ifndef NDEBUG
-    //psrc = "C:/Users/Brown/Documents/GitHub/abc/examples/gray/main.abc";
+    //psrc = "C:/Users/Brown/Documents/GitHub/summer_camp/src/main.abc";
+    //psrc = "C:/Users/Brown/Documents/GitHub/abc/examples/test/main.abc";
     //psrc = "C:/Users/Brown/Documents/GitHub/abc/examples/platformer/main.abc";
     //psrc = "C:/Users/Brown/Documents/GitHub/abc/benchmarks/fibonacci/fibonacci.abc";
-    psrc = "C:/Users/Brown/Documents/GitHub/abc/tests/tests/enum.abc";
+    psrc = "C:/Users/Brown/Documents/GitHub/abc/tests/tests/func_ref.abc";
     //pbin = "C:/Users/Brown/Documents/GitHub/abc/examples/test/blah.bin";
     //parduboy = "C:/Users/Brown/Documents/GitHub/abc/examples/test/test.arduboy";
 #endif
@@ -141,8 +142,8 @@ int main(int argc, char** argv)
 
     psrc = std::filesystem::current_path() / psrc;
 
-    ards::compiler_t c;
-    ards::assembler_t a;
+    abc::compiler_t c;
+    abc::assembler_t a;
 
 #if PROFILING
     auto ta = clock();

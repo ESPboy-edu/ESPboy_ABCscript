@@ -14,17 +14,16 @@ main:
   .line 14
   sys   debug_break
   .line 16
-  p00
   p1
-  p1
+  dup
   p2
-  p2
+  dup
   p3
-  p3
+  dup
   p4
-  p4
+  dup
   p5
-  p5
+  dup
   .line 18
   p1
   sys   assert
@@ -60,6 +59,6 @@ main:
   .line 25
   sys   debug_break
   .line 12
-  popn  12
+  popn  10
   ret
 

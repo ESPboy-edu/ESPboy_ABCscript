@@ -19,34 +19,11 @@ main:
   sys   set_random_seed
   .line 19
   p0
-$L_main_2:
+$L_main_1:
   .line 21
   sys   random
   .line 22
   p0000
-  call  my_random
-  .line 23
-  p8
-  getln 8
-  sub4
-  bool4
-  not
-  sys   assert
-  popn  8
-  .line 19
-  inc
-  dup
-  push  100
-  cult
-  bnz   $L_main_2
-  pop
-  .line 26
-  sys   debug_break
-  .line 13
-  ret
-
-my_random:
-  .file random.abc
   .line 5
   getg4 my_seed 0
   .line 6
@@ -75,5 +52,338 @@ my_random:
   setg4 my_seed 0
   .line 10
   setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bz    $L_main_0
+  .line 21
+  sys   random
+  .line 22
+  p0000
+  .line 5
+  getg4 my_seed 0
+  .line 6
+  getl4 4
+  getl4 8
+  p8
+  lsl4
+  xor4
+  setl4 4
+  .line 7
+  getl4 4
+  getl4 8
+  push  9
+  lsr4
+  xor4
+  setl4 4
+  .line 8
+  getl4 4
+  getl4 8
+  push  23
+  lsl4
+  xor4
+  setl4 4
+  .line 9
+  getl4 4
+  setg4 my_seed 0
+  .line 10
+  setl4 4
+  .line 23
+  getln 8 8
+  sub4
+  bool4
+  not
+  sys   assert
+  popn  8
+  .line 19
+  inc
+  dup
+  push  100
+  cult
+  bnz   $L_main_1
+$L_main_0:
+  pop
+  .line 26
+  sys   debug_break
+  .line 13
   ret
 

@@ -269,8 +269,7 @@ main:
   getg4 y 0
   fsub
   p00
-  push  96
-  p64
+  push2 16480
   cfeq
   sys   assert
   .line 56
@@ -278,8 +277,7 @@ main:
   getg4 y 0
   fmul
   p00
-  p64
-  push  192
+  push2 49216
   cfeq
   sys   assert
   .line 57
@@ -287,8 +285,7 @@ main:
   getg4 y 0
   fdiv
   p00
-  p64
-  push  191
+  push2 48960
   cfeq
   sys   assert
   .line 59
@@ -298,15 +295,12 @@ main:
   cfeq
   sys   assert
   .line 60
-  pushg x 0
   getg4 x 0
   p00
-  p128
-  push  63
+  push2 16256
   fadd
-  dupw5
-  setrn 4
-  getrn 4
+  setg4 x 0
+  getg4 x 0
   p00
   p32
   p64
@@ -337,27 +331,22 @@ main:
   .line 65
   getg4 x 0
   p00
-  push  96
-  p64
+  push2 16480
   cfeq
   sys   assert
   .line 67
   getg4 x 0
   p00
-  push  96
-  p64
+  push2 16480
   cfeq
   sys   assert
   .line 68
-  pushg x 0
   getg4 x 0
   p00
-  p128
-  push  63
+  push2 16256
   fsub
-  dupw5
-  setrn 4
-  getrn 4
+  setg4 x 0
+  getg4 x 0
   p00
   p32
   p64

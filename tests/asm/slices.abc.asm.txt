@@ -3,18 +3,23 @@
 
 $PD_0:
 $PD_1:
+$PD_10:
+$PD_14:
 $PD_2:
 $PD_4:
 $PD_7:
 $PD_9:
   .b 0 48
-$PD_10:
+$PD_15:
 $PD_3:
 $PD_8:
   .b 3 65 6c 6c 6f
 $PD_5:
+$PD_11:
   .b 2 6f 70 70
 $PD_6:
+$PD_12:
+$PD_13:
   .b 4 48 6f 70 70 6f
 
 $globinit:
@@ -26,23 +31,16 @@ main:
   .file slices.abc
   .line 3
   sys   debug_break
-  .line 6
-  p000
-  pz8
-$L_main_2:
   .line 8
-  dup
-  refl  12
-  dup4
-  aixb1 10
-  setr
-  .line 7
-  inc
-  dup
-  push  10
-  cult
-  bnz   $L_main_2
-  pop
+  p0
+  p1
+  p2
+  p3
+  p4
+  p5
+  p6
+  p7
+  push2 2312
   .line 11
   refl  9
   p3
@@ -77,8 +75,7 @@ $L_main_2:
   p4
   .line 20
   refl  12
-  push  10
-  p0
+  push2 10
   dup6
   p0
   dup7
@@ -130,8 +127,7 @@ $L_main_2:
   sys   assert
   pop2
   .line 34
-  p3
-  getln 9
+  getln 3 9
   .line 35
   getl  11
   p2
@@ -149,19 +145,18 @@ $L_main_2:
   sys   assert
   popn  13
   .line 42
-  push4 1819043144
+  push3 7103816
+  dup
   push  111
-  p0
   p0000
+  dup
   .line 43
-  pushl $PD_1 0
-  getpn 4
-  p00
+  getl4 10
   p0000
+  p00
   .line 44
   refl  10
-  push  10
-  p0
+  push2 10
   refl  24
   p4
   p0
@@ -170,13 +165,14 @@ $L_main_2:
   sys   assert
   popn  20
   .line 48
-  pushl $PD_2 0
-  getpn 5
-  p0
+  push3 7103816
+  dup
+  push  111
   p0000
+  dup
   .line 49
   p1
-  p1
+  dup
   p0
   p3
   p00
@@ -193,8 +189,7 @@ $L_main_2:
   p5
   p00
   refl  16
-  push  10
-  p0
+  push2 10
   sys   strcmp_P
   not
   sys   assert
@@ -216,24 +211,22 @@ $L_main_2:
   p5
   p00
   refl  16
-  push  10
-  p0
+  push2 10
   sys   strcmp_P
   not
   sys   assert
   popn  10
   .line 56
-  pushl $PD_7 0
-  getpn 5
-  p0
+  push3 7103816
+  dup
+  push  111
   p0000
+  dup
   .line 57
   refl  10
-  push  10
-  p0
+  push3 65546
   .line 58
-  p1
-  p1
+  dup
   p0
   p3
   p00
@@ -249,17 +242,73 @@ $L_main_2:
   sys   strcmp_P
   not
   sys   assert
-  popn  14
-  .line 66
+  .line 59
+  p0
   p1
+  p0
+  p5
+  p00
+  refl  20
+  push2 10
+  sys   strcmp_P
+  not
+  sys   assert
+  .line 60
+  p0
+  p1
+  p0
+  p5
+  p00
+  getl4 10
+  sys   strcmp_P
+  not
+  sys   assert
+  .line 61
+  p5
   p1
   p0
   p3
   p00
-  p1
+  getl4 10
   p1
   p0
+  p4
+  p0
+  aslc  1
+  pop2
   p3
+  p0
+  sys   strcpy_P
+  pop4
+  .line 62
+  p8
+  p1
+  p0
+  p5
+  p00
+  getl4 10
+  sys   strcmp_P
+  not
+  sys   assert
+  .line 63
+  p8
+  p1
+  p0
+  p5
+  p00
+  refl  20
+  push2 10
+  sys   strcmp_P
+  not
+  sys   assert
+  popn  14
+  .line 66
+  p1
+  dup
+  p0
+  p3
+  p00
+  getl4 6
   p00
   sys   strcmp_PP
   not
